@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:math';
 
 part 'bilibili/bilibili.dart';
@@ -55,9 +56,12 @@ class Song {
   String name;
 
   // 时长
-  int duration;
+  int? duration;
 
-  Song({required this.id, required this.name, required this.duration});
+  // 歌手
+  List<Artist> artists;
+
+  Song({required this.id, required this.name, this.duration, required this.artists});
 }
 
 // 专辑
@@ -69,6 +73,15 @@ class Album {
   String name;
 
   Album(this.id, this.name);
+
+  factory Album.fromJsonStr(String json) => Album.fromJson(jsonDecode(json));
+
+  factory Album.fromJson(Map<String, dynamic> json) => Album(json["id"], json["name"]);
+
+  Map<String, dynamic> toJson() => {"id": id, "name": name};
+
+  @override
+  String toString() => jsonEncode(this);
 }
 
 // 歌手
@@ -80,4 +93,13 @@ class Artist {
   String name;
 
   Artist(this.id, this.name);
+
+  factory Artist.fromJsonStr(String json) => Artist.fromJson(jsonDecode(json));
+
+  factory Artist.fromJson(Map<String, dynamic> json) => Artist(json["id"], json["name"]);
+
+  Map<String, dynamic> toJson() => {"id": id, "name": name};
+
+  @override
+  String toString() => jsonEncode(this);
 }

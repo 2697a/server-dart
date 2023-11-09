@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:drift/drift.dart';
@@ -15,7 +16,19 @@ class Songs extends Table {
 
   TextColumn get name => text().withLength(min: 6, max: 32)();
 
-  IntColumn get duration => integer()();
+  IntColumn get duration => integer().nullable()();
+
+  TextColumn get artists => text().map(const ArtistConverter())();
+}
+
+class ArtistConverter extends TypeConverter<List<Artist>, String> {
+  const ArtistConverter();
+
+  @override
+  List<Artist> fromSql(String fromDb) => (jsonDecode(fromDb) as List<Map<String, dynamic>>).map(Artist.fromJson).toList();
+
+  @override
+  String toSql(List<Artist> value) => jsonEncode(value.map((e) => e.toJson()).toList());
 }
 
 @DriftDatabase(tables: [Songs])
@@ -40,7 +53,7 @@ LazyDatabase _openConnection() {
 final db = Database();
 
 void testDb() async {
-  await db.into(db.songs).insert(SongsCompanion.insert(name: '七里香', duration: 300));
+  await db.into(db.songs).insert(SongsCompanion.insert(name: "name", artists: []));
   List<Song> songs = await db.select(db.songs).get();
   print(songs);
 }

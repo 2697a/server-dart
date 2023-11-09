@@ -29,10 +29,17 @@ class $SongsTable extends Songs with TableInfo<$SongsTable, Song> {
       const VerificationMeta('duration');
   @override
   late final GeneratedColumn<int> duration = GeneratedColumn<int>(
-      'duration', aliasedName, false,
-      type: DriftSqlType.int, requiredDuringInsert: true);
+      'duration', aliasedName, true,
+      type: DriftSqlType.int, requiredDuringInsert: false);
+  static const VerificationMeta _artistsMeta =
+      const VerificationMeta('artists');
   @override
-  List<GeneratedColumn> get $columns => [id, name, duration];
+  late final GeneratedColumnWithTypeConverter<List<Artist>, String> artists =
+      GeneratedColumn<String>('artists', aliasedName, false,
+              type: DriftSqlType.string, requiredDuringInsert: true)
+          .withConverter<List<Artist>>($SongsTable.$converterartists);
+  @override
+  List<GeneratedColumn> get $columns => [id, name, duration, artists];
   @override
   String get aliasedName => _alias ?? 'songs';
   @override
@@ -54,9 +61,8 @@ class $SongsTable extends Songs with TableInfo<$SongsTable, Song> {
     if (data.containsKey('duration')) {
       context.handle(_durationMeta,
           duration.isAcceptableOrUnknown(data['duration']!, _durationMeta));
-    } else if (isInserting) {
-      context.missing(_durationMeta);
     }
+    context.handle(_artistsMeta, const VerificationResult.success());
     return context;
   }
 
@@ -71,7 +77,10 @@ class $SongsTable extends Songs with TableInfo<$SongsTable, Song> {
       name: attachedDatabase.typeMapping
           .read(DriftSqlType.string, data['${effectivePrefix}name'])!,
       duration: attachedDatabase.typeMapping
-          .read(DriftSqlType.int, data['${effectivePrefix}duration'])!,
+          .read(DriftSqlType.int, data['${effectivePrefix}duration']),
+      artists: $SongsTable.$converterartists.fromSql(attachedDatabase
+          .typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}artists'])!),
     );
   }
 
@@ -79,41 +88,53 @@ class $SongsTable extends Songs with TableInfo<$SongsTable, Song> {
   $SongsTable createAlias(String alias) {
     return $SongsTable(attachedDatabase, alias);
   }
+
+  static TypeConverter<List<Artist>, String> $converterartists =
+      const ArtistConverter();
 }
 
 class SongsCompanion extends UpdateCompanion<Song> {
   final Value<int> id;
   final Value<String> name;
-  final Value<int> duration;
+  final Value<int?> duration;
+  final Value<List<Artist>> artists;
   const SongsCompanion({
     this.id = const Value.absent(),
     this.name = const Value.absent(),
     this.duration = const Value.absent(),
+    this.artists = const Value.absent(),
   });
   SongsCompanion.insert({
     this.id = const Value.absent(),
     required String name,
-    required int duration,
+    this.duration = const Value.absent(),
+    required List<Artist> artists,
   })  : name = Value(name),
-        duration = Value(duration);
+        artists = Value(artists);
   static Insertable<Song> custom({
     Expression<int>? id,
     Expression<String>? name,
     Expression<int>? duration,
+    Expression<String>? artists,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
       if (name != null) 'name': name,
       if (duration != null) 'duration': duration,
+      if (artists != null) 'artists': artists,
     });
   }
 
   SongsCompanion copyWith(
-      {Value<int>? id, Value<String>? name, Value<int>? duration}) {
+      {Value<int>? id,
+      Value<String>? name,
+      Value<int?>? duration,
+      Value<List<Artist>>? artists}) {
     return SongsCompanion(
       id: id ?? this.id,
       name: name ?? this.name,
       duration: duration ?? this.duration,
+      artists: artists ?? this.artists,
     );
   }
 
@@ -129,6 +150,10 @@ class SongsCompanion extends UpdateCompanion<Song> {
     if (duration.present) {
       map['duration'] = Variable<int>(duration.value);
     }
+    if (artists.present) {
+      final converter = $SongsTable.$converterartists;
+      map['artists'] = Variable<String>(converter.toSql(artists.value));
+    }
     return map;
   }
 
@@ -137,7 +162,8 @@ class SongsCompanion extends UpdateCompanion<Song> {
     return (StringBuffer('SongsCompanion(')
           ..write('id: $id, ')
           ..write('name: $name, ')
-          ..write('duration: $duration')
+          ..write('duration: $duration, ')
+          ..write('artists: $artists')
           ..write(')'))
         .toString();
   }
